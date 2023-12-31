@@ -1,0 +1,343 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body,
+        html {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            display: flex;
+        }
+
+        .toolbar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 10px;
+            cursor: move;
+        }
+
+        .toolbar-item img {
+            width: 30px;
+            height: 30px;
+        }
+
+        #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ddd;
+            z-index: 1000;
+        }
+
+        #popup input,
+        #popup textarea,
+        #popup select {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        #popup button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+    <title>Canvas Örneği</title>
+</head>
+
+<body>
+
+    <canvas id="myCanvas"></canvas>
+
+    <div id="toolbar">
+        <div class="toolbar-item" id="icon1" draggable="true"
+            ondragstart="drag(event, 'https://cdn-icons-png.flaticon.com/512/2838/2838912.png')">
+            <img src="https://cdn-icons-png.flaticon.com/512/2838/2838912.png" alt="Icon 1">
+            <div>Icon 1</div>
+        </div>
+        <div class="toolbar-item" id="icon2" draggable="true"
+            ondragstart="drag(event, 'https://www.freeiconspng.com/uploads/red-location-icon-map-png-4.png')">
+            <img src="https://www.freeiconspng.com/uploads/red-location-icon-map-png-4.png" alt="Icon 2">
+            <div>Icon 2</div>
+        </div>
+
+        <button onclick="saveIconsToJson()">JSON Kaydet</button>
+        <button onclick="loadIconsFromJson()">JSON Yükle</button>
+        <!-- Diğer ikonları buraya ekleyebilirsiniz -->
+    </div>
+
+    <div id="popup">
+        <input type="text" id="popupTitle" placeholder="Başlık">
+        <textarea id="popupContent" placeholder="İçerik"></textarea>
+        <select id="popupFontSize">
+            <option value="12">12 px</option>
+            <option value="16">16 px</option>
+            <option value="20">20 px</option>
+            <!-- Dilediğiniz boyutları ekleyebilirsiniz -->
+        </select>
+        <select id="popupFontColor">
+            <option value="black">Siyah</option>
+            <option value="red">Kırmızı</option>
+            <option value="blue">Mavi</option>
+            <!-- Dilediğiniz renkleri ekleyebilirsiniz -->
+        </select>
+        <input type="color" id="popupBgColor" value="#ffffff"> <!-- Arkaplan rengi seçimi için renk seçici eklendi -->
+        <button onclick="updateIconInfo()">Güncelle</button>
+        <button onclick="closePopup()">Kapat</button>
+    </div>
+
+    <script>
+        var canvas = document.getElementById('myCanvas');
+        var ctx = canvas.getContext('2d');
+
+        var iconScaleX = 30;
+        var iconScaleY = 30;
+        var icons = [];
+
+        // Image sources array
+        var imageSources = [];
+
+        // Loop through each toolbar item and add image sources to the array
+        var toolbarItems = document.querySelectorAll('.toolbar-item');
+        for (var i = 0; i < toolbarItems.length; i++) {
+            var imgSource = toolbarItems[i].getElementsByTagName('img')[0].src;
+            imageSources.push(imgSource);
+        }
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Arkaplan resmi URL'si
+        var backgroundImageURL = 'https://www.inchoatethoughts.com/wp-content/uploads/2021/12/NeverwinterMapLabels-scaled.jpg';
+
+        // Popup içinde düzenlenecek ikon bilgileri
+        var selectedIcon = null;
+
+        function drawBackground() {
+            var background = new Image();
+            background.src = backgroundImageURL;
+            background.onload = function () {
+                ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+
+                // Sayfa yüklendiğinde kaydedilen ikonları çiz
+                icons.forEach(function (icon) {
+                    let xPos = icon.x * window.innerWidth - iconScaleX / 2;
+                    let yPos = icon.y * window.innerHeight - iconScaleY / 2;
+
+                    // img özelliğini kontrol et
+                    img = new Image();
+                    img.src = imageSources[icon.imgIndex];
+                    ctx.drawImage(img, xPos, yPos, iconScaleX, iconScaleY); // Boyutları 30x30 piksel olarak sabitledik.
+                    icon.xPos = xPos;
+                    icon.yPos = yPos;
+
+                    // Arkaplan rengini uygula
+                    ctx.fillStyle = icon.bgColor || '#ffffff'; // Varsayılan: Beyaz
+                    let len = 10;
+                    if (icon && icon.title) {
+                        len = icon.title.length * icon.fontSize * .9;
+                    }
+                    ctx.fillRect(xPos - len / 2 + iconScaleX / 2, yPos + iconScaleY, len, iconScaleY * .6); // Arkaplan boyutu:
+
+                    // İkonun altında başlık ve içerik yaz
+                    ctx.fillStyle = icon.fontColor || 'black';
+                    ctx.font = (icon.fontSize || 12) + 'px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(icon.title || '', xPos + iconScaleX / 2, yPos + iconScaleY + iconScaleY / 2);
+
+                });
+            };
+        }
+
+        function init() {
+            drawBackground();
+        }
+
+        window.addEventListener('resize', function () {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Yeniden çiz
+            init();
+        });
+
+        // Sayfa yüklendiğinde arkaplanı çiz
+        window.addEventListener('load', init);
+
+        // Toolbar üzerindeki ikonları sürükleyip bırakma
+        function drag(ev, imgSrc) {
+            ev.dataTransfer.setData('text', imgSrc);
+        }
+
+
+        // Canvas üzerine bırakılan ikonu çiz
+        canvas.addEventListener('drop', function (event) {
+            event.preventDefault();
+
+            var data = event.dataTransfer.getData('text');
+
+            var imgX = (event.clientX / window.innerWidth);
+            var imgY = (event.clientY / window.innerHeight);
+
+            var indexOfSource = imageSources.indexOf(data);
+
+            // Kaydedilen ikonları güncelle
+            icons.push({ imgIndex: indexOfSource, x: imgX, y: imgY });
+
+            // Canvas üzerindeki tüm elemanları temizle ve tekrar çiz
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+        });
+
+
+
+        canvas.addEventListener('dragover', function (event) {
+            event.preventDefault();
+        });
+
+        // Canvas üzerine tıklama olayı
+        canvas.addEventListener('click', function (event) {
+            var clickX = event.clientX;
+            var clickY = event.clientY;
+
+            // Tıklanan noktaya en yakın ikonu bul
+            var closestIcon = findClosestIcon(clickX, clickY);
+
+            // Eğer bir ikon bulunduysa, popup'ı göster
+            if (closestIcon !== null) {
+                showPopup(closestIcon.index);
+            }
+        });
+
+        // En yakın ikonu bulan fonksiyon
+        function findClosestIcon(x, y) {
+            var minDistance = Number.MAX_VALUE;
+            var closestIcon = null;
+
+            icons.forEach(function (icon, index) {
+                var distance = Math.sqrt(Math.pow(x - icon.xPos - iconScaleX / 2, 2) + Math.pow(y - icon.yPos - iconScaleY / 2, 2));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestIcon = { index: index, distance: distance };
+                }
+            });
+
+            // Eğer en yakın ikon belirli bir mesafenin ötesindeyse, null döndür
+            if (minDistance > 50) {
+                return null;
+            }
+
+            return closestIcon;
+        }
+
+        // Popup penceresini gösterme
+        function showPopup(iconIndex) {
+            selectedIcon = icons[iconIndex];
+            document.getElementById('popupTitle').value = selectedIcon.title || '';
+            document.getElementById('popupContent').value = selectedIcon.content || '';
+            document.getElementById('popupFontSize').value = selectedIcon.fontSize || 12;
+            document.getElementById('popupFontColor').value = selectedIcon.fontColor || 'black';
+            document.getElementById('popupBgColor').value = selectedIcon.bgColor || '#ffffff';
+
+            document.getElementById('popup').style.display = 'block';
+        }
+
+        // Popup penceresini kapatma
+        function closePopup() {
+            document.getElementById('popup').style.display = 'none';
+        }
+
+        // İkon bilgilerini güncelleme
+        function updateIconInfo() {
+            if (selectedIcon) {
+                selectedIcon.title = document.getElementById('popupTitle').value;
+                selectedIcon.content = document.getElementById('popupContent').value;
+                selectedIcon.fontSize = parseInt(document.getElementById('popupFontSize').value);
+                selectedIcon.fontColor = document.getElementById('popupFontColor').value;
+                selectedIcon.bgColor = document.getElementById('popupBgColor').value;
+
+                closePopup();
+
+                // Canvas üzerindeki tüm elemanları temizle ve tekrar çiz
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBackground();
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+        function saveIconsToJson() {
+            var jsonContent = JSON.stringify(icons);
+
+            var blob = new Blob([jsonContent], { type: 'application/json' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'icons.json';
+            a.click();
+        }
+
+        function loadIconsFromJson() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.addEventListener('change', function () {
+                var file = input.files[0];
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    var jsonContent = e.target.result;
+                    icons = JSON.parse(jsonContent);
+
+                    // Canvas üzerindeki tüm elemanları temizle ve tekrar çiz
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawBackground();
+                };
+
+                reader.readAsText(file);
+            });
+
+            input.click();
+        }
+
+
+
+    </script>
+
+</body>
+
+</html>
