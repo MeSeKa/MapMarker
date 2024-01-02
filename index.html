@@ -78,12 +78,16 @@
 
     <div id="toolbar">
         <div class="toolbar-item" id="icon1" draggable="true"
-            ondragstart="drag(event, 'https://cdn-icons-png.flaticon.com/512/2838/2838912.png')">
+            ondragstart="drag(event, 'https://cdn-icons-png.flaticon.com/512/2838/2838912.png')"
+            ontouchstart="touchStart(event,'https://cdn-icons-png.flaticon.com/512/2838/2838912.png')"
+            ontouchmove="touchMove(event)" ontouchend="touchEnd(event)">
             <img src="https://cdn-icons-png.flaticon.com/512/2838/2838912.png" alt="Icon 1">
             <div>Icon 1</div>
         </div>
         <div class="toolbar-item" id="icon2" draggable="true"
-            ondragstart="drag(event, 'https://www.freeiconspng.com/uploads/red-location-icon-map-png-4.png')">
+            ondragstart="drag(event, 'https://www.freeiconspng.com/uploads/red-location-icon-map-png-4.png')"
+            ontouchstart="touchStart(event,'https://www.freeiconspng.com/uploads/red-location-icon-map-png-4.png')"
+            ontouchmove="touchMove(event)" ontouchend="touchEnd(event)">
             <img src="https://www.freeiconspng.com/uploads/red-location-icon-map-png-4.png" alt="Icon 2">
             <div>Icon 2</div>
         </div>
@@ -194,6 +198,60 @@
         // Toolbar üzerindeki ikonları sürükleyip bırakma
         function drag(ev, imgSrc) {
             ev.dataTransfer.setData('text', imgSrc);
+        }
+
+
+
+        var startX, startY, offsetX, offsetY;
+
+        var lastX, lastY;
+        var iconImageData;
+
+        function touchStart(event, imgDat) {
+            var touch = event.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            offsetX = 0;
+            offsetY = 0;
+            iconImageData = imgDat;
+        }
+
+        function touchMove(event) {
+            if (!startX || !startY) {
+                return;
+            }
+
+            var touch = event.touches[0];
+            offsetX = touch.clientX - startX;
+            offsetY = touch.clientY - startY;
+
+            lastX = touch.clientX;
+            lastY = touch.clientY;
+
+            // İsteğe bağlı: Sürükleme işlemi sırasında ek görsel geri bildirim ekleyebilirsiniz.
+            // Örneğin, sürükleme işlemi sırasında elemanı hareket ettirmek için bir CSS transform kullanabilirsiniz.
+            event.target.style.transform = 'translate(' + offsetX + 'px, ' + offsetY + 'px)';
+        }
+
+        function touchEnd(event) {
+            // İsteğe bağlı: Sürükleme işlemi bittiğinde yapılacak işlemleri burada ekleyebilirsiniz.
+            console.log('Sürükleme işlemi bitti');
+
+            // İsteğe bağlı: Sürükleme işlemi bittiğinde ek görsel geri bildirimleri sıfırlayabilirsiniz.
+            event.target.style.transform = '';
+
+            // İsteğe bağlı: Başka işlemler de ekleyebilirsiniz.
+            var imgX = lastX / window.innerWidth;
+            var imgY = lastY / window.innerHeight;
+
+            var indexOfSource = imageSources.indexOf(iconImageData);
+
+            // Kaydedilen ikonları güncelle
+            icons.push({ imgIndex: indexOfSource, x: imgX, y: imgY });
+
+            // Canvas üzerindeki tüm elemanları temizle ve tekrar çiz
+            //ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
         }
 
 
