@@ -69,7 +69,7 @@
             cursor: pointer;
         }
     </style>
-    <title>Canvas Örneği</title>
+    <title>Map Marker</title>
 </head>
 
 <body>
@@ -94,6 +94,7 @@
 
         <button onclick="saveIconsToJson()">JSON Kaydet</button>
         <button onclick="loadIconsFromJson()">JSON Yükle</button>
+        <button onclick="changeBackgroundImage()">Arkaplan Resmi Değiştir</button>
         <!-- Diğer ikonları buraya ekleyebilirsiniz -->
     </div>
 
@@ -179,6 +180,33 @@
                 });
             };
         }
+
+        // Arkaplan resmini değiştiren fonksiyon
+        function changeBackgroundImage() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+
+            input.addEventListener('change', function () {
+                var file = input.files[0];
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    var newBackgroundImage = e.target.result;
+                    backgroundImageURL= newBackgroundImage;
+                    document.body.style.backgroundImage = 'url("' + newBackgroundImage + '")';
+
+                    // Eğer arkaplan resmi değişirse, canvas üzerindeki tüm elemanları temizle ve tekrar çiz
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawBackground();
+                };
+
+                reader.readAsDataURL(file);
+            });
+
+            input.click();
+        }
+
 
         function init() {
             drawBackground();
